@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset='utf-8'>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>zJobs</title>
+    <style>
+        #filters {
+            position: static;
+            top: 0;
+            margin: auto;
+            width: 70%;
+            text-align: center;
+        }
+
+        #lista table {
+            width: 100%;
+            margin: auto;
+            text-align: center;
+
+        }
+
+        .filtro {
+            padding-top: ;
+            position: absolute;
+            display: contents;
+        }
+
+        #job {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div>
+        <div id="filters">
+            <div class="filtro">
+                <label for="prefix">Prefix:</label>
+                <input type="text" id="prefix" name="prefix" placeholder="*">
+            </div>
+            <div class="filtro">
+                <label for="owner">owner:</label>
+                <input type="text" id="Owner" name="Owner" placeholder="*">
+            </div>
+            <div class="filtro">
+                <input type="submit" value="Submit">
+            </div>
+        </div>
+    </div>
+    <div id="lista">
+        <table>
+            <tr>
+                <th>Job</th>
+                <th>Job ID</th>
+                <th>Status</th>
+                <th>Max RC</th>
+                <th>Class</th>
+                <th>Submit Time</th>
+                <th>End Time</th>
+            </tr>
+            <tr>
+                <td>*</td>
+                <td>*</td>
+                <td>*</td>
+                <td>*</td>
+                <td>*</td>
+                <td>*</td>
+                <td>*</td>
+            </tr>
+        </table>
+    </div>
+    <div id="job">
+        <table>
+            <tr>
+                <th>DD</th>
+                <th>Step</th>
+                <th>Records</th>
+            </tr>
+            <tr>
+                <td>*</td>
+                <td>*</td>
+                <td>*</td>
+            </tr>
+        </table>
+    </div>
+</body>
+
+</html>
