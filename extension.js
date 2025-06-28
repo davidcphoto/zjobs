@@ -7,6 +7,7 @@ const zowe_explorer_api = require("@zowe/zowe-explorer-api");
 let user = '';
 let pref = '';
 
+let painel;
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -28,7 +29,9 @@ function activate(context) {
 
         // Display a message box to the user
         vscode.window.showInformationMessage('zJobs!');
-        OpenWebView(node.session);
+        if (!painel) {
+            OpenWebView(node.session);
+        }
     });
 
     context.subscriptions.push(disposable);
@@ -44,35 +47,12 @@ module.exports = {
 
 function OpenWebView(session) {
 
-    // const submitIcon = `$(filter)`;
-    const submitIcon = new vscode.ThemeIcon("filter");
     const SetaExpandir = '&#11208;';
     const SetaComprimir = '&#11206;';
+    const documento = '&#128459;';
     if (!pref && !user) {
         user = session.mISession.user;
     }
-    const Job = '*';
-    const JobID = '*';
-    const Status = '*';
-    const MaxRC = '*';
-    const Class = '*';
-    const SubmitData = '*';
-    const EndData = '*';
-
-
-    const linha = `            <a href="#"><tr>
-                <td>${SetaExpandir}</td>
-                <td>${Job}</td>
-                <td>${JobID}</td>
-                <td>${Status}</td>
-                <td>${MaxRC}</td>
-                <td>${Class}</td>
-                <td>${SubmitData}</td>
-                <td>${EndData}</td>
-            </tr></a>
-            <tr><td COLSPAN="8"></td></tr>`;
-
-    let linhas = linha + linha;
 
     const HTML = `
 <!DOCTYPE html>
@@ -109,15 +89,22 @@ function OpenWebView(session) {
         }
 
 		.tr:nth-child(even) {
-            background-color: var(--vscode-textSeparator-foreground);
+            background-color: var(--vscode-textBlockQuote-background);
         }
 
         .tr:hover {
             background-color: var(--vscode-editorActionList-focusBackground);
+            cursor: pointer;
+        }
+
+        td {
+            padding-left: 20px;
+            padding-right: 20px;
         }
 
         th {
-            background-color: var(--vscode-textPreformat-background);
+            padding-left: 20px;
+            padding-right: 20px;
         }
 
         .botao {
@@ -128,26 +115,37 @@ function OpenWebView(session) {
             position: relative;
             display: inline;
             color: var(--vscode-editor-foreground);
-            background-color: var(--vscode-tree-indentGuidesStroke);
+            background-color: var(--vscode-button-background);
             }
 
         .botao:hover {
-            background-color: var(--vscode-editorActionList-focusBackground);
+            background-color: var(--vscode-button-hoverBackground);
+        }
+
+        .spoollist {
+
+            padding: 10px;
+            text-align: left;
+            table {
+                display: block;
+        		tr:nth-child(even) {
+                    background-color: var(--vscode-textBlockQuote-background);
+                }
+                .tr:hover {
+                    background-color: var(--vscode-editorActionList-focusBackground);
+                    cursor: pointer;
+                }
+            }
+        }
+
+        .spool {
+            padding-left: 10%;
         }
 
     </style>
 	<script>
 
 	    const vscode = acquireVsCodeApi();
-
-        function getKey(e) {
-            console.log(e.key)
-            if(e.key == 13){
-                const elem =  e.target
-                console.log(elem.value);
-                getDados();
-            }
-        }
 
 		function getDados() {
 
@@ -162,12 +160,37 @@ function OpenWebView(session) {
 			vscode.postMessage(msgRetorno);
 		}
 
+        function tecla(evento) {
+                console.log("tecla " + evento.key);
+            if (evento.key==="Enter") {
+                console.log("enter");
+                getDados();
+            }
+        }
+
         function getJob(jobName, jobId){
 	        console.log("jobId " + jobId);
 	        console.log("jobName " + jobName);
-            const msgRetorno = '{"comando":"Job","jobname":"'+jobName+'","jobid":"'+jobId+'"}';
-	        console.log(msgRetorno);
-			vscode.postMessage(msgRetorno);
+            const spool = document.getElementById('Spool_'+jobId);
+            const seta = document.getElementById('Seta_'+jobId);
+	        console.log("spool " + spool);
+
+            if (spool === null) {
+                const msgRetorno = '{"comando":"Job","jobname":"'+jobName+'","jobid":"'+jobId+'"}';
+                console.log(msgRetorno);
+                vscode.postMessage(msgRetorno);
+                    seta.innerHTML="&#11206;";
+            } else {
+                if (spool.style.display == "none") {
+                    spool.style=undefined;
+                    seta.innerHTML="&#11206;";
+
+                } else {
+                    spool.style.display = "none";
+                    seta.innerHTML="&#11208;";
+                }
+
+            }
         }
 
         window.addEventListener('message', event => {
@@ -193,9 +216,36 @@ function OpenWebView(session) {
 
         function FormataSpool(jobID, Spool){
 
+            console.log('jobID ' + jobID);
+            console.log('Spool ' + Spool);
+            var Linha = document.getElementById(jobID);
             var ListaJobs = document.getElementById('ListaJobs');
-            tbody.insertAfter(ListaJobs, Spool);
-            // document.getElementById('Spool_'+jobID).innerHTML=Spool;
+            console.log('Linha ' + Linha.rowIndex);
+            var novaLinha = ListaJobs.insertRow(Linha.rowIndex+1);
+            novaLinha.ID='Spool_' + jobID;
+            novaLinha.innerHTML = Spool;
+
+
+
+        }
+
+        function Abrir(jobname, jobid, spoolid, DD) {
+
+            console.log('jobid ' + jobid);
+            console.log('DD ' + DD);
+            console.log('spoolid ' + spoolid);
+            const msgRetorno = '{"comando":"Spool", "jobname":"' + jobname + '","jobid":"' + jobid + '","spoolid":"'+spoolid+'","dd":"'+DD+'"}';
+	        console.log(msgRetorno);
+			vscode.postMessage(msgRetorno);
+
+        }
+
+        function AbrirJCL(jobname, jobid) {
+
+            console.log('jobid ' + jobid);
+            const msgRetorno = '{"comando":"JCL", "jobname":"' + jobname + '","jobid":"' + jobid + '"}';
+	        console.log(msgRetorno);
+			vscode.postMessage(msgRetorno);
 
         }
 
@@ -207,11 +257,11 @@ function OpenWebView(session) {
         <form id="filters">
             <div class="filtro">
                 <label for="prefix">Prefix:</label>
-                <input type="text" id="prefix" name="Prefix" placeholder="*" onkeydown="getKey()" value="${pref}">
+                <input type="text" onkeydown="tecla(event)" id="prefix" name="Prefix" placeholder="*" value="${pref}">
             </div>
             <div class="filtro">
                 <label for="owner">Owner:</label>
-                <input type="text" id="owner" name="Owner" placeholder="*" onkeydown="getKey()" value="${user}">
+                <input type="text" onkeydown="tecla(event)" id="owner" name="Owner" placeholder="*" value="${user}">
             </div>
             <div class="filtro">
                 <a href="#"><div class="botao" onclick="getDados()">&#10004;</div></a>
@@ -234,10 +284,11 @@ function OpenWebView(session) {
 
 </html>
 	`
-    let painel = vscode.window.createWebviewPanel('Search Result', 'zJobs', 1, {
+
+    painel = vscode.window.createWebviewPanel('zJobs', 'zJobs', 1, {
         enableScripts: true,
         enableFindWidget: true,
-        retainContextWhenHidden: false
+        retainContextWhenHidden: true
     });
 
 
@@ -248,12 +299,22 @@ function OpenWebView(session) {
             case "Lista":
 
                 abreElemento(session, mensagem.lista.Prefix, mensagem.lista.Owner);
-
                 break;
 
             case "Job":
 
                 obtemJob(session, mensagem.jobname, mensagem.jobid);
+                break;
+
+            case "Spool":
+
+                obtemSpool(session, mensagem.jobname, mensagem.jobid, mensagem.spoolid);
+                break;
+
+            case "JCL":
+
+                obtemJCL(session, mensagem.jobname, mensagem.jobid);
+                break;
 
             default:
                 break;
@@ -288,6 +349,81 @@ function OpenWebView(session) {
             painel.webview.postMessage(mensagem);
         }
     }
+    function obtemSpool(session, jobname, jobid, spoolId) {
+
+        (async () => {
+
+            // This may take awhile...
+            let response;
+            response = await GetJobs.GetJobs.getSpoolContentById(session, jobname, jobid, spoolId);
+            console.log(response);
+            abreficheiro(response, jobname + '.' + spoolId, 'spool');
+        })().catch((err) => {
+            console.error(err);
+            process.exit(1);
+        });
+    }
+
+    function obtemJCL(session, jobname, jobid) {
+
+        (async () => {
+
+            // This may take awhile...
+            let response;
+            response = await GetJobs.GetJobs.getJcl(session, jobname, jobid)
+            console.log(response);
+            abreficheiro(response, jobname + '.' + jobid, 'jcl');
+        })().catch((err) => {
+            console.error(err);
+            process.exit(1);
+        });
+    }
+
+    function abreficheiro(texto, Ficheiro = '', extensão = '') {
+
+        const ficheiros = vscode.workspace.textDocuments;
+        if (vscode.workspace.workspaceFolders !== undefined) {
+
+
+            var nomeficheiro = vscode.workspace.workspaceFolders[0].uri.fsPath + "\\" + Ficheiro + '.' + extensão;
+
+            let i = 0;
+            let encontrou = true;
+
+            while (encontrou == true) {
+                encontrou = false;
+                for (let j = 0; j < ficheiros.length; j++) {
+                    if (ficheiros[j].fileName == nomeficheiro) {
+                        encontrou = true;
+                    }
+                    if (encontrou) {
+                        ++i;
+                        nomeficheiro = vscode.workspace.workspaceFolders[0].uri.fsPath + "\\" + Ficheiro + "_v" + i + '.' + extensão;
+                    }
+                }
+
+            }
+
+            var setting = vscode.Uri.parse("untitled:" + nomeficheiro);
+
+
+            vscode.workspace.openTextDocument(setting).then((a) => {
+                vscode.window.showTextDocument(a, 1, false).then(e => {
+                    e.edit(edit => {
+                        edit.insert(new vscode.Position(0, 0), texto);
+                    });
+
+                })
+            }, (error) => {
+                console.error(error);
+                debugger;
+
+            });
+        } else {
+            vscode.window.showErrorMessage('No workspace defined!');
+        }
+
+    }
 
 
     function FormataSpool(spool) {
@@ -295,26 +431,35 @@ function OpenWebView(session) {
         console.log(spool);
         // let linhas=[];
         let linhas = '';
+        let jobId = '';
+        let jobName = '';
 
         for (let i = 0; i < spool.length; i++) {
             const element = spool[i];
             const ddname = element.ddname;
             const stepname = element.stepname;
-            // const linha = {"ddname":ddname, "stepname": stepname};
-            // linhas.push(linha);
+            const nLinhas = element["record-count"];
+            const jobid = element.jobid;
+            jobId = jobid;
+            const jobname = element.jobname;
+            jobName = jobname;
+            const spoolid = element.id;
             const linha = `
-                    <li>${ddname} - ${stepname}</li>
+                    <tr class="tr" onclick="Abrir('${jobname}', '${jobid}', '${spoolid}', '${ddname}')"><td>${documento}</td><td>${stepname}</td><td>${ddname}</td><td>${nLinhas}</td></tr>
             `
             linhas += linha;
         }
 
-        return `<td colspan="6"><ul>${linhas}</ul></td>`;
+        // return `<td colspan="6" class="spoollist"><ul>${linhas}</ul></td>`;
+        return `<td  id="Spool_${jobId}" colspan="6" class="spoollist"><table class="spool"><tr><th>${SetaComprimir}</th><th>Step</th><th>DD</th><th>Records</th></tr>${linhas}</table>            <div class="filtro">
+                <a href="#"><div class="botao" onclick="AbrirJCL('${jobName}', '${jobId}')">Get JCL</div></a>
+            </div></td>`;
     }
 
     function abreElemento(session, Prefix, Owner) {
 
-        if (Owner=='') {
-            Owner= '*';
+        if (Owner == '') {
+            Owner = '*';
         }
 
         (async () => {
@@ -331,7 +476,7 @@ function OpenWebView(session) {
                 }
             }
             console.log(response);
-            const linhas =  FormataLinhas(response);
+            const linhas = FormataLinhas(response);
             enviaLinhas(linhas);
         })().catch((err) => {
             console.error(err);
@@ -352,8 +497,8 @@ function OpenWebView(session) {
             </tr>`;
         for (let i = 0; i < response.length; i++) {
 
-            const linha = `            <tr class='tr' id='${response[i].jobid}'>
-                <td><a href='#' onclick='getJob("${response[i].jobname}","${response[i].jobid}")'>${SetaExpandir}</a></td>
+            const linha = `            <tr onclick='getJob("${response[i].jobname}","${response[i].jobid}")' class='tr' id='${response[i].jobid}'>
+                <td id="Seta_${response[i].jobid}">${SetaExpandir}</td>
                 <td>${response[i].jobname}</td>
                 <td>${response[i].jobid}</td>
                 <td>${response[i].status}</td>

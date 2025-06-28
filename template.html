@@ -31,6 +31,33 @@
             display: none;
         }
     </style>
+    <script>
+        function FormataSpool(jobID, Spool) {
+
+            console.log('jobID ' + jobID);
+            console.log('Spool ' + Spool);
+            var Linha = document.getElementById(jobID);
+            var ListaJobs = document.getElementById('ListaJobs');
+            console.log('Linha ' + Linha.rowIndex);
+            var novaLinha = ListaJobs.insertRow(Linha.rowIndex);
+            novaLinha.ID = 'Spool_' + jobID;
+            novaLinha.innerHTML = Spool;
+
+
+
+        }
+
+        function Abrir(jobname, jobid, DD) {
+
+            console.log('jobid ' + jobid);
+            console.log('DD ' + DD);
+            const msgRetorno = '{"comando":"Spool", "jobname":"' + jobname + '","jobid":"' + jobid + '", "dd":"'+DD+'"}';
+            console.log(msgRetorno);
+            vscode.postMessage(msgRetorno);
+
+        }
+
+    </script>
 </head>
 
 <body>
