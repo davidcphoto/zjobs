@@ -1,11 +1,17 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 const vscode = require('vscode');
-const ProfileInfo = require("@zowe/imperative");
 const GetJobs = require("@zowe/zos-jobs-for-zowe-sdk");
 const zowe_explorer_api = require("@zowe/zowe-explorer-api");
+
+
+const SetaExpandir = '&#11208;';
+const SetaComprimir = '&#11206;';
+const documento = '&#128459;';
+
 let user = '';
 let pref = '';
+let sessao;
 
 let painel;
 
@@ -27,14 +33,57 @@ function activate(context) {
     let disposable = vscode.commands.registerCommand('zjobs.Open', function (node = zowe_explorer_api.ZoweTreeNode) {
         // The code you place here will be executed every time your command is executed
 
-        // Display a message box to the user
-        vscode.window.showInformationMessage('zJobs!');
         if (!painel) {
+            sessao = node.session;
             OpenWebView(node.session);
+
         }
     });
 
+    let Purge = vscode.commands.registerCommand('zjobs.Purge', function (dados) {
+        // The code you place here will be executed every time your command is executed
+
+        deleteJob(sessao, dados.JobName, dados.JobId);
+
+    });
+    let GetJCL = vscode.commands.registerCommand('zjobs.GetJCL', function (dados) {
+        // The code you place here will be executed every time your command is executed
+
+        obtemJCL(sessao, dados.JobName, dados.JobId);
+
+    });
+    let GetSysoutList = vscode.commands.registerCommand('zjobs.GetSysoutList', function (dados) {
+        // The code you place here will be executed every time your command is executed
+
+        obtemJob(sessao, dados.JobName, dados.JobId);
+
+    });
+    let GetSysout = vscode.commands.registerCommand('zjobs.GetSysout', function (dados) {
+        // The code you place here will be executed every time your command is executed
+
+        obtemSpool(sessao, dados.JobName, dados.JobId, dados.SpoolId);
+
+    });
+    let Refresh = vscode.commands.registerCommand('zjobs.Refresh', function (dados) {
+        // The code you place here will be executed every time your command is executed
+
+        console.log("Refresh " + dados);
+
+    });
+    let Cancel = vscode.commands.registerCommand('zjobs.Cancel', function (dados) {
+        // The code you place here will be executed every time your command is executed
+
+        CancelJob(sessao, dados.JobName, dados.JobId);
+
+    });
+
     context.subscriptions.push(disposable);
+    context.subscriptions.push(GetJCL);
+    context.subscriptions.push(Purge);
+    context.subscriptions.push(GetSysoutList);
+    context.subscriptions.push(GetSysout);
+    context.subscriptions.push(Refresh);
+    context.subscriptions.push(Cancel);
 }
 
 // This method is called when your extension is deactivated
@@ -47,11 +96,9 @@ module.exports = {
 
 function OpenWebView(session) {
 
-    const SetaExpandir = '&#11208;';
-    const SetaComprimir = '&#11206;';
-    const documento = '&#128459;';
     if (!pref && !user) {
-        user = session.mISession.user;
+        // user = session.mISession.user;
+        // pref = session.mISession.user + '*';
     }
 
     const HTML = `
@@ -122,12 +169,23 @@ function OpenWebView(session) {
             background-color: var(--vscode-button-hoverBackground);
         }
 
+        .botaoJCL {
+            margin-block-end: 8px;
+            padding: 2px;
+            position: relative;
+            display: block;
+            color: var(--vscode-editor-foreground);
+            background-color: var(--vscode-button-background);
+            }
+
+        .botaoJCL:hover {
+            background-color: var(--vscode-button-hoverBackground);
+        }
+
         .spoollist {
 
-            padding: 10px;
-            text-align: left;
+            padding-inline: 10%;
             table {
-                display: block;
         		tr:nth-child(even) {
                     background-color: var(--vscode-textBlockQuote-background);
                 }
@@ -136,10 +194,6 @@ function OpenWebView(session) {
                     cursor: pointer;
                 }
             }
-        }
-
-        .spool {
-            padding-left: 10%;
         }
 
     </style>
@@ -285,7 +339,7 @@ function OpenWebView(session) {
 </html>
 	`
 
-    painel = vscode.window.createWebviewPanel('zJobs', 'zJobs', 1, {
+    painel = vscode.window.createWebviewPanel('zJobsWebview', 'zJobs', 1, {
         enableScripts: true,
         enableFindWidget: true,
         retainContextWhenHidden: true
@@ -323,138 +377,9 @@ function OpenWebView(session) {
 
     painel.onDidDispose(() => {
         painel.dispose();
+        painel = undefined;
     });
 
-
-    function obtemJob(session, jobname, jobid) {
-
-        (async () => {
-
-            // This may take awhile...
-            let response;
-            response = await GetJobs.GetJobs.getSpoolFiles(session, jobname, jobid)
-            console.log(response);
-            const spool = FormataSpool(response);
-            mostraSpool(jobid, spool);
-        })().catch((err) => {
-            console.error(err);
-            process.exit(1);
-        });
-    }
-
-    function mostraSpool(jobid, spool) {
-
-        if (painel) {
-            const mensagem = { "command": "Spool", "jobID": jobid, "Spool": spool }
-            painel.webview.postMessage(mensagem);
-        }
-    }
-    function obtemSpool(session, jobname, jobid, spoolId) {
-
-        (async () => {
-
-            // This may take awhile...
-            let response;
-            response = await GetJobs.GetJobs.getSpoolContentById(session, jobname, jobid, spoolId);
-            console.log(response);
-            abreficheiro(response, jobname + '.' + spoolId, 'spool');
-        })().catch((err) => {
-            console.error(err);
-            process.exit(1);
-        });
-    }
-
-    function obtemJCL(session, jobname, jobid) {
-
-        (async () => {
-
-            // This may take awhile...
-            let response;
-            response = await GetJobs.GetJobs.getJcl(session, jobname, jobid)
-            console.log(response);
-            abreficheiro(response, jobname + '.' + jobid, 'jcl');
-        })().catch((err) => {
-            console.error(err);
-            process.exit(1);
-        });
-    }
-
-    function abreficheiro(texto, Ficheiro = '', extensão = '') {
-
-        const ficheiros = vscode.workspace.textDocuments;
-        if (vscode.workspace.workspaceFolders !== undefined) {
-
-
-            var nomeficheiro = vscode.workspace.workspaceFolders[0].uri.fsPath + "\\" + Ficheiro + '.' + extensão;
-
-            let i = 0;
-            let encontrou = true;
-
-            while (encontrou == true) {
-                encontrou = false;
-                for (let j = 0; j < ficheiros.length; j++) {
-                    if (ficheiros[j].fileName == nomeficheiro) {
-                        encontrou = true;
-                    }
-                    if (encontrou) {
-                        ++i;
-                        nomeficheiro = vscode.workspace.workspaceFolders[0].uri.fsPath + "\\" + Ficheiro + "_v" + i + '.' + extensão;
-                    }
-                }
-
-            }
-
-            var setting = vscode.Uri.parse("untitled:" + nomeficheiro);
-
-
-            vscode.workspace.openTextDocument(setting).then((a) => {
-                vscode.window.showTextDocument(a, 1, false).then(e => {
-                    e.edit(edit => {
-                        edit.insert(new vscode.Position(0, 0), texto);
-                    });
-
-                })
-            }, (error) => {
-                console.error(error);
-                debugger;
-
-            });
-        } else {
-            vscode.window.showErrorMessage('No workspace defined!');
-        }
-
-    }
-
-
-    function FormataSpool(spool) {
-
-        console.log(spool);
-        // let linhas=[];
-        let linhas = '';
-        let jobId = '';
-        let jobName = '';
-
-        for (let i = 0; i < spool.length; i++) {
-            const element = spool[i];
-            const ddname = element.ddname;
-            const stepname = element.stepname;
-            const nLinhas = element["record-count"];
-            const jobid = element.jobid;
-            jobId = jobid;
-            const jobname = element.jobname;
-            jobName = jobname;
-            const spoolid = element.id;
-            const linha = `
-                    <tr class="tr" onclick="Abrir('${jobname}', '${jobid}', '${spoolid}', '${ddname}')"><td>${documento}</td><td>${stepname}</td><td>${ddname}</td><td>${nLinhas}</td></tr>
-            `
-            linhas += linha;
-        }
-
-        // return `<td colspan="6" class="spoollist"><ul>${linhas}</ul></td>`;
-        return `<td  id="Spool_${jobId}" colspan="6" class="spoollist"><table class="spool"><tr><th>${SetaComprimir}</th><th>Step</th><th>DD</th><th>Records</th></tr>${linhas}</table>            <div class="filtro">
-                <a href="#"><div class="botao" onclick="AbrirJCL('${jobName}', '${jobId}')">Get JCL</div></a>
-            </div></td>`;
-    }
 
     function abreElemento(session, Prefix, Owner) {
 
@@ -476,9 +401,14 @@ function OpenWebView(session) {
                 }
             }
             console.log(response);
-            const linhas = FormataLinhas(response);
-            enviaLinhas(linhas);
+            if (response.length == 0) {
+                vscode.window.showErrorMessage("No jobs returned");
+            } else {
+                const linhas = FormataLinhas(response);
+                enviaLinhas(linhas);
+            }
         })().catch((err) => {
+            vscode.window.showErrorMessage(err);
             console.error(err);
             process.exit(1);
         });
@@ -497,7 +427,7 @@ function OpenWebView(session) {
             </tr>`;
         for (let i = 0; i < response.length; i++) {
 
-            const linha = `            <tr onclick='getJob("${response[i].jobname}","${response[i].jobid}")' class='tr' id='${response[i].jobid}'>
+            const linha = `            <tr onclick='getJob("${response[i].jobname}","${response[i].jobid}")' class='tr' id='${response[i].jobid}' data-vscode-context='{"webviewSection": "Job", "JobName":"${response[i].jobname}", "JobId":"${response[i].jobid}"}'>
                 <td id="Seta_${response[i].jobid}">${SetaExpandir}</td>
                 <td>${response[i].jobname}</td>
                 <td>${response[i].jobid}</td>
@@ -519,4 +449,179 @@ function OpenWebView(session) {
         }
     }
 
+}
+
+function obtemJCL(session, jobname, jobid) {
+
+    (async () => {
+
+        // This may take awhile...
+        let response;
+        response = await GetJobs.GetJobs.getJcl(session, jobname, jobid)
+        console.log(response);
+        abreficheiro(response, jobname + '.' + jobid, 'jcl');
+    })().catch((err) => {
+        vscode.window.showErrorMessage(err);
+        console.error(err);
+        process.exit(1);
+    });
+}
+
+
+function abreficheiro(texto, Ficheiro = '', extensão = '') {
+
+    const ficheiros = vscode.workspace.textDocuments;
+    if (vscode.workspace.workspaceFolders !== undefined) {
+
+
+        var nomeficheiro = vscode.workspace.workspaceFolders[0].uri.fsPath + "\\" + Ficheiro + '.' + extensão;
+
+        let i = 0;
+        let encontrou = true;
+
+        while (encontrou == true) {
+            encontrou = false;
+            for (let j = 0; j < ficheiros.length; j++) {
+                if (ficheiros[j].fileName == nomeficheiro) {
+                    encontrou = true;
+                }
+                if (encontrou) {
+                    ++i;
+                    nomeficheiro = vscode.workspace.workspaceFolders[0].uri.fsPath + "\\" + Ficheiro + "_v" + i + '.' + extensão;
+                }
+            }
+
+        }
+
+        var setting = vscode.Uri.parse("untitled:" + nomeficheiro);
+
+
+        vscode.workspace.openTextDocument(setting).then((a) => {
+            vscode.window.showTextDocument(a, 1, false).then(e => {
+                e.edit(edit => {
+                    edit.insert(new vscode.Position(0, 0), texto);
+                });
+
+            })
+        }, (error) => {
+            vscode.window.showErrorMessage(error);
+            console.error(error);
+            debugger;
+
+        });
+    } else {
+        vscode.window.showErrorMessage('No workspace defined!');
+    }
+
+}
+
+function obtemJob(session, jobname, jobid) {
+
+    (async () => {
+
+        // This may take awhile...
+        let response;
+        response = await GetJobs.GetJobs.getSpoolFiles(session, jobname, jobid)
+        console.log(response);
+        const spool = FormataSpool(response);
+        mostraSpool(jobid, spool);
+    })().catch((err) => {
+        vscode.window.showErrorMessage(err);
+        console.error(err);
+        process.exit(1);
+    });
+}
+
+
+function FormataSpool(spool) {
+
+    console.log(spool);
+    // let linhas=[];
+    let linhas = '';
+    let jobId = '';
+    let jobName = '';
+
+    for (let i = 0; i < spool.length; i++) {
+        const element = spool[i];
+        const ddname = element.ddname;
+        const stepname = element.stepname;
+        const nLinhas = element["record-count"];
+        const jobid = element.jobid;
+        jobId = jobid;
+        const jobname = element.jobname;
+        // jobName = jobname;
+        const spoolid = element.id;
+        const linha = `
+                    <tr class="tr" onclick="Abrir('${jobname}', '${jobid}', '${spoolid}', '${ddname}')" data-vscode-context='{"webviewSection": "Spool" , "JobName":"${jobname}", "JobId":"${jobid}", "SpoolId":"${spoolid}"}'><td>${documento}</td><td>${stepname}</td><td>${ddname}</td><td>${nLinhas}</td></tr>
+            `
+        linhas += linha;
+    }
+
+    return `<td  id="Spool_${jobId}" colspan="6" class="spoollist"><table class="spool"><tr><th>${SetaComprimir}</th><th>Step</th><th>DD</th><th>Records</th></tr>${linhas}</table>            <div class="filtro">
+    </div></td>`;
+    // <a href="#"><div class="botaoJCL" onclick="AbrirJCL('${jobName}', '${jobId}')">Get JCL</div></a>
+}
+
+
+
+function mostraSpool(jobid, spool) {
+
+    if (painel) {
+        const mensagem = { "command": "Spool", "jobID": jobid, "Spool": spool }
+        painel.webview.postMessage(mensagem);
+    }
+}
+
+
+
+function obtemSpool(session, jobname, jobid, spoolId) {
+
+    (async () => {
+
+        // This may take awhile...
+        let response;
+        response = await GetJobs.GetJobs.getSpoolContentById(session, jobname, jobid, spoolId);
+        console.log(response);
+        abreficheiro(response, jobname + '.' + spoolId, 'spool');
+    })().catch((err) => {
+        vscode.window.showErrorMessage(err);
+        console.error(err);
+        process.exit(1);
+    });
+}
+
+
+function deleteJob(session, jobname, jobid) {
+
+    (async () => {
+
+        // This may take awhile...
+        let response;
+        response = await GetJobs.DeleteJobs.deleteJob(session, jobname, jobid);
+        console.log(response);
+        const spool = FormataSpool(response);
+        mostraSpool(jobid, spool);
+    })().catch((err) => {
+        vscode.window.showErrorMessage(err);
+        console.error(err);
+        process.exit(1);
+    });
+}
+
+
+function CancelJob(session, jobname, jobid) {
+
+    (async () => {
+
+        // This may take awhile...
+        let response;
+        response = await GetJobs.CancelJobs.cancelJob(session, jobname, jobid);
+        console.log(response);
+        const spool = FormataSpool(response);
+        mostraSpool(jobid, spool);
+    })().catch((err) => {
+        vscode.window.showErrorMessage(err);
+        console.error(err);
+        process.exit(1);
+    });
 }

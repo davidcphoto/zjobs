@@ -4,6 +4,9 @@
   "description": "Alternative to jobs in zowe explorer",
   "version": "1.0.0",
   "icon": "imagens\\zJobs.png",
+  "repository": {
+    "url": "https://github.com/davidcphoto/zjobs"
+  },
   "engines": {
     "vscode": "^1.101.0"
   },
@@ -19,14 +22,74 @@
       {
         "command": "zjobs.Open",
         "title": "zJobs - Open view"
+      },
+      {
+        "command": "zjobs.GetJCL",
+        "title": "zJobs - Get JCL"
+      },
+      {
+        "command": "zjobs.Purge",
+        "title": "zJobs - Delete job"
+      },
+      {
+        "command": "zjobs.GetSysoutList",
+        "title": "zJobs - Expand sysout list"
+      },
+      {
+        "command": "zjobs.Refresh",
+        "title": "zJobs - Refresh"
+      },
+      {
+        "command": "zjobs.Cancel",
+        "title": "zJobs - Cancel"
+      },
+      {
+        "command": "zjobs.GetSysoutList",
+        "title": "zJobs - Expand sysout list"
+      },
+      {
+        "command": "zjobs.GetSysout",
+        "title": "zJobs - Get Sysout file"
       }
     ],
     "menus": {
       "view/item/context": [
         {
-          "when": "view == zowe.jobs.explorer",
+          "when": "(view == zowe.ds.explorer || view == zowe.jobs.explorer)",
           "command": "zjobs.Open",
           "group": "900_zjobs"
+        }
+      ],
+      "webview/context": [
+        {
+          "command": "zjobs.Refresh",
+          "group": "zjobs@01",
+          "when": "webviewId == 'zJobsWebview' && (webviewSection == 'Job' || webviewSection == 'Spool')"
+        },
+        {
+          "command": "zjobs.GetJCL",
+          "group": "zjobs@02",
+          "when": "webviewId == 'zJobsWebview' && (webviewSection == 'Job' || webviewSection == 'Spool')"
+        },
+        {
+          "command": "zjobs.Cancel",
+          "group": "zjobs@03",
+          "when": "webviewId == 'zJobsWebview' && (webviewSection == 'Job' || webviewSection == 'Spool')"
+        },
+        {
+          "command": "zjobs.Purge",
+          "group": "zjobs@04",
+          "when": "webviewId == 'zJobsWebview' && (webviewSection == 'Job' || webviewSection == 'Spool')"
+        },
+        {
+          "command": "zjobs.GetSysoutList",
+          "group": "zjobs@05",
+          "when": "webviewId == 'zJobsWebview' && webviewSection == 'Job'"
+        },
+        {
+          "command": "zjobs.GetSysout",
+          "group": "zjobs@06",
+          "when": "webviewId == 'zJobsWebview' && webviewSection == 'Spool'"
         }
       ]
     }
@@ -47,7 +110,6 @@
     "typescript": "^5.2.2"
   },
   "dependencies": {
-    "@zowe/imperative": "^8.23.1",
     "@zowe/zos-jobs-for-zowe-sdk": "^8.24.0",
     "@zowe/zowe-explorer-api": "^3.2.1"
   }

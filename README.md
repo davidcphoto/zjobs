@@ -1,65 +1,34 @@
 # zjobs README
 
-This is the README for your extension "zjobs". After writing up a brief description, we recommend including the following sections.
+zJobs is a alternative way to list, view and manage you jobs sysout files allowing for a more straightforward way to interact with jobs on your mainframe filtered by prefix and/or user.
+
+> To access the extension view right click on you profile in the zowe explorer **Data Sets** or **Jobs treeview**.
 
 ## Features
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
-
-For example if there is an image subfolder under your extension project workspace:
-
-\!\[feature X\]\(images/feature-x.png\)
-
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+1. List jobs Filter jobs by prefix and/or userid.
+2. List **sysout** files in a job.
+3. View a **sysout** file from a job.
+4. Get jcl from a executed job.
+5. Refresh a job information.
+6. Cancel a active job.
+7. Delete a job.
 
 ## Requirements
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+1. VS Code installed.
+2. Zowe explorer extension installed.
 
-## Extension Settings
+## Recommendations
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
+1. Ibm Z Open Editor installed.
 
-For example:
 
-This extension contributes the following settings:
+## Recommendations
 
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
+1. Ibm Z Open Editor installed.
 
-## Known Issues
-
-Calling out known issues can help limit users opening duplicate issues against your extension.
-
-## Release Notes
-
-Users appreciate release notes as you update your extension.
 
 ### 1.0.0
 
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
-
----
-
-## Working with Markdown
-
-You can author your README using Visual Studio Code.  Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux)
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux)
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets
-
-## For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+Initial release of zJobs
