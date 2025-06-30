@@ -3,10 +3,25 @@
   "displayName": "zJobs",
   "description": "Alternative to jobs in zowe explorer",
   "version": "1.0.0",
-  "icon": "imagens\\zJobs.png",
+  "icon": "imagens/zJobs.png",
+  "publisher": "DavidCanto",
   "repository": {
     "url": "https://github.com/davidcphoto/zjobs"
   },
+  "keywords": [
+    "jcl",
+    "mainframe",
+    "David Canto",
+    "zos",
+    "zowe",
+    "job",
+    "job control language",
+    "jes",
+    "jobs",
+    "submit",
+    "sd",
+    "sh"
+  ],
   "engines": {
     "vscode": "^1.101.0"
   },

@@ -34,8 +34,25 @@ function activate(context) {
         // The code you place here will be executed every time your command is executed
 
         if (!painel) {
-            sessao = node.session;
-            OpenWebView(node.session);
+            switch (true) {
+                case String(node.contextValue).startsWith('session_type='):
+                case String(node.contextValue).startsWith('profile'):
+                    sessao = node.session;
+                    break;
+                case String(node.contextValue).startsWith('pds'):
+                case String(node.contextValue).startsWith('server'):
+                case String(node.contextValue).startsWith('job_'):
+                    sessao = node.mParent.session;
+                    break;
+                case String(node.contextValue).startsWith('member'):
+                case String(node.contextValue).startsWith('spool'):
+                    sessao = node.mParent.mParent.session;
+                    break;
+
+                default:
+                    break;
+            }
+            OpenWebView(sessao);
 
         }
     });
@@ -67,7 +84,7 @@ function activate(context) {
     let Refresh = vscode.commands.registerCommand('zjobs.Refresh', function (dados) {
         // The code you place here will be executed every time your command is executed
 
-        console.log("Refresh " + dados);
+        RefreshJob(sessao, dados.JobId);
 
     });
     let Cancel = vscode.commands.registerCommand('zjobs.Cancel', function (dados) {
@@ -250,13 +267,16 @@ function OpenWebView(session) {
         window.addEventListener('message', event => {
 
             const message = event.data; // The JSON data our extension sent
-			console.log('Ficheiro ' + message.command);
+			console.log('message.Job ' + message.Job);
             switch (message.command) {
                 case 'Lista':
                     FormataLista(message.Lista);
                     break;
                 case 'Spool':
                     FormataSpool(message.jobID, message.Spool);
+                    break;
+                case 'Job':
+                    FormataJob(message.jobID, message.Job);
                     break;
             }
         });
@@ -270,16 +290,21 @@ function OpenWebView(session) {
 
         function FormataSpool(jobID, Spool){
 
-            console.log('jobID ' + jobID);
-            console.log('Spool ' + Spool);
             var Linha = document.getElementById(jobID);
             var ListaJobs = document.getElementById('ListaJobs');
-            console.log('Linha ' + Linha.rowIndex);
             var novaLinha = ListaJobs.insertRow(Linha.rowIndex+1);
             novaLinha.ID='Spool_' + jobID;
             novaLinha.innerHTML = Spool;
 
+        }
 
+        function FormataJob(jobID, Job){
+
+            console.log('jobID ' + jobID);
+            console.log('Job ' + Job);
+
+            var Linha = document.getElementById(jobID);
+            Linha.innerHTML = Job;
 
         }
 
@@ -311,11 +336,11 @@ function OpenWebView(session) {
         <form id="filters">
             <div class="filtro">
                 <label for="prefix">Prefix:</label>
-                <input type="text" onkeydown="tecla(event)" id="prefix" name="Prefix" placeholder="*" value="${pref}">
+                <input type="text" onkeydown="tecla(event)" id="prefix" name="Prefix" placeholder="*" value="${pref}" maxlength="10">
             </div>
             <div class="filtro">
                 <label for="owner">Owner:</label>
-                <input type="text" onkeydown="tecla(event)" id="owner" name="Owner" placeholder="*" value="${user}">
+                <input type="text" onkeydown="tecla(event)" id="owner" name="Owner" placeholder="*" value="${user}" maxlength="8">
             </div>
             <div class="filtro">
                 <a href="#"><div class="botao" onclick="getDados()">&#10004;</div></a>
@@ -383,9 +408,6 @@ function OpenWebView(session) {
 
     function abreElemento(session, Prefix, Owner) {
 
-        if (Owner == '') {
-            Owner = '*';
-        }
 
         (async () => {
 
@@ -395,9 +417,14 @@ function OpenWebView(session) {
                 response = await GetJobs.GetJobs.getJobsByOwnerAndPrefix(session, Owner, Prefix)
             } else {
                 if (Prefix) {
-                    response = await GetJobs.GetJobs.getJobsByPrefix(session, Prefix)
+                    response = await GetJobs.GetJobs.getJobsByOwnerAndPrefix(session, '*', Prefix)
                 } else {
-                    response = await GetJobs.GetJobs.getJobsByOwner(session, Owner);
+                    if (Owner) {
+                        response = await GetJobs.GetJobs.getJobsByOwner(session, Owner);
+                    } else {
+                        vscode.window.showErrorMessage("No prefix and Owner defined.");
+                        return;
+                    }
                 }
             }
             console.log(response);
@@ -427,15 +454,17 @@ function OpenWebView(session) {
             </tr>`;
         for (let i = 0; i < response.length; i++) {
 
-            const linha = `            <tr onclick='getJob("${response[i].jobname}","${response[i].jobid}")' class='tr' id='${response[i].jobid}' data-vscode-context='{"webviewSection": "Job", "JobName":"${response[i].jobname}", "JobId":"${response[i].jobid}"}'>
-                <td id="Seta_${response[i].jobid}">${SetaExpandir}</td>
-                <td>${response[i].jobname}</td>
-                <td>${response[i].jobid}</td>
-                <td>${response[i].status}</td>
-                <td>${response[i].retcode}</td>
-                <td>${response[i].class}</td>
+            const linha = `            <tr id="${response[i].jobid}" onclick='getJob("${response[i].jobname}","${response[i].jobid}")' class='tr' id='${response[i].jobid}' data-vscode-context='{"webviewSection": "Job", "JobName":"${response[i].jobname}", "JobId":"${response[i].jobid}"}'>
+                ${FormataLinha(response[i])}
             </tr>`;
-            // <tr id='Spool_${response[i].jobid}' class="spool" ><td colspan="6"></td></tr>`;
+            // <td id="Seta_${response[i].jobid}">${SetaExpandir}</td>
+            // <td>${response[i].jobname}</td>
+            // <td>${response[i].jobid}</td>
+            // <td>${response[i].status}</td>
+            // <td>${response[i].retcode}</td>
+            // <td>${response[i].class}</td>
+
+            // linhas += FormataLinha(response[i]);
             linhas += linha;
         }
         return linhas;
@@ -532,6 +561,45 @@ function obtemJob(session, jobname, jobid) {
     });
 }
 
+function RefreshJob(session, jobid) {
+
+    (async () => {
+
+        // This may take awhile...
+        let response;
+        response = await GetJobs.GetJobs.getJob(session, jobid)
+        const Job = await FormataLinha(response);
+        console.log(Job);
+        mostraJob(jobid, Job);
+    })().catch((err) => {
+        vscode.window.showErrorMessage(err);
+        console.error(err);
+        process.exit(1);
+    });
+}
+
+function FormataLinha(response) {
+
+    const linha = `<td id="Seta_${response.jobid}">${SetaExpandir}</td>
+                <td>${response.jobname}</td>
+                <td>${response.jobid}</td>
+                <td>${response.status}</td>
+                <td>${response.retcode}</td>
+                <td>${response.class}</td>`;
+    return linha;
+
+}
+
+
+
+function mostraJob(jobid, job) {
+
+    if (painel) {
+        const mensagem = { "command": "Job", "jobID": jobid, "Job": job };
+        painel.webview.postMessage(mensagem);
+    }
+}
+
 
 function FormataSpool(spool) {
 
@@ -539,7 +607,6 @@ function FormataSpool(spool) {
     // let linhas=[];
     let linhas = '';
     let jobId = '';
-    let jobName = '';
 
     for (let i = 0; i < spool.length; i++) {
         const element = spool[i];
